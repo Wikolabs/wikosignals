@@ -1,0 +1,37 @@
+version: "3.9"
+
+# wikosignals demo - production-ready POC.
+# 2 services orchestrated:
+#   - wikosignals (Next.js frontend on host port 3032)
+#   - wikosignals-backend (FastAPI Python, internal only on 8000)
+# Shared external network wkdemo-net (created once by deploy.yml) avoids
+# Docker default address-pool exhaustion across all 47 LP stacks.
+
+services:
+  wikosignals-backend:
+    image: ghcr.io/wikolabs/wikosignals-backend:latest
+    container_name: wikosignals-backend
+    restart: unless-stopped
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    networks:
+      - wkdemo_net
+
+  wikosignals:
+    image: ghcr.io/wikolabs/wikosignals:latest
+    container_name: wikosignals
+    restart: unless-stopped
+    ports:
+      - "3032:3000"
+    environment:
+      BACKEND_URL: "http://wikosignals-backend:8000"
+    depends_on:
+      - wikosignals-backend
+    networks:
+      - wkdemo_net
+
+networks:
+  wkdemo_net:
+    name: wkdemo-net
+    external: true
